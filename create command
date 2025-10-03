@@ -1,0 +1,3 @@
+mkdir -p ~/cmps241-connect4 && cd ~/cmps241-connect4
+git init
+echo "# CMPS 241 – Connect 4 (Sprint 1)" > README.md
