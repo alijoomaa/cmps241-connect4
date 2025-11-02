@@ -28,25 +28,30 @@ void print_board() {
     }
 }
 
-int drop_piece(int col, char token) {
-    if (col < 0 || col >= COLS) return -1;
-    int r = 0;
-    while (r < ROWS) {
-        if (board[r][col] == '.') { board[r][col] = token; return r; }
-        r++;
-    }
-    return -1;
-}
-
 int is_column_full(int col) {
     if (col < 0 || col >= COLS) return 1;
     return board[ROWS - 1][col] != '.';
 }
 
+int drop_piece(int col, char token) {
+    if (col < 0 || col >= COLS) return -1;
+    int r = 0;
+    while (r < ROWS) {
+        if (board[r][col] == '.') {
+            board[r][col] = token;
+            return r;
+        }
+        r++;
+    }
+    return -1;
+}
+
 int count_dir(int r, int c, int dr, int dc, char token) {
     int cnt = 0;
     while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] == token) {
-        cnt++; r += dr; c += dc;
+        cnt++;
+        r += dr;
+        c += dc;
     }
     return cnt;
 }
@@ -87,7 +92,10 @@ int bot_choose_column_easy() {
     int n = 0;
     int c = 0;
     while (c < COLS) {
-        if (!is_column_full(c)) { valid_cols[n] = c; n++; }
+        if (!is_column_full(c)) {
+            valid_cols[n] = c;
+            n++;
+        }
         c++;
     }
     if (n == 0) return -1;
@@ -95,9 +103,41 @@ int bot_choose_column_easy() {
     return valid_cols[idx];
 }
 
-int bot_choose_column(int difficulty) {
-    (void)difficulty;
+int find_winning_move_for(char token) {
+    int col = 0;
+    while (col < COLS) {
+        if (!is_column_full(col)) {
+            int row = drop_piece(col, token);
+            if (row != -1) {
+                int win = is_winning_move(row, col, token);
+                board[row][col] = '.';
+                if (win) return col;
+            }
+        }
+        col++;
+    }
+    return -1;
+}
+
+int bot_choose_column_medium() {
+    int win_col = find_winning_move_for('B');
+    if (win_col != -1) return win_col;
+    int block_col = find_winning_move_for('A');
+    if (block_col != -1) return block_col;
+    int priority[COLS] = {3, 2, 4, 1, 5, 0, 6};
+    int i = 0;
+    while (i < COLS) {
+        int col = priority[i];
+        if (!is_column_full(col)) return col;
+        i++;
+    }
     return bot_choose_column_easy();
+}
+
+int bot_choose_column(int difficulty) {
+    if (difficulty == 1) return bot_choose_column_easy();
+    if (difficulty == 2) return bot_choose_column_medium();
+    return bot_choose_column_medium();
 }
 
 int main() {
@@ -116,7 +156,7 @@ int main() {
     if (mode == 2) {
         puts("\nSelect bot difficulty:");
         puts("1. Easy  (random valid moves)");
-        puts("2. Medium (future)");
+        puts("2. Medium (win/block + center)");
         puts("3. Hard   (future)");
         printf("> ");
         if (scanf("%d", &difficulty) != 1 || difficulty < 1 || difficulty > 3) {
@@ -127,7 +167,10 @@ int main() {
     char player = 'A';
     while (1) {
         print_board();
-        if (is_draw() || !any_valid_moves()) { puts("DRAW!"); break; }
+        if (is_draw() || !any_valid_moves()) {
+            puts("DRAW!");
+            break;
+        }
         if (mode == 2 && player == 'B') {
             int bot_col = bot_choose_column(difficulty);
             if (bot_col == -1) {
@@ -140,21 +183,36 @@ int main() {
             if (row == -1) {
                 puts("Bot attempted invalid move. Forfeiting turn.");
             } else {
-                if (is_winning_move(row, bot_col, 'B')) { print_board(); puts("Player B (Bot) WINS!"); break; }
+                if (is_winning_move(row, bot_col, 'B')) {
+                    print_board();
+                    puts("Player B (Bot) WINS!");
+                    break;
+                }
             }
         } else {
             printf("Player %c - choose column (1-7): ", player);
             int col = 0;
-            if (scanf("%d", &col) != 1) { puts("\nInvalid input. Exiting."); return 0; }
+            if (scanf("%d", &col) != 1) {
+                puts("\nInvalid input. Exiting.");
+                return 0;
+            }
             col -= 1;
             int row = drop_piece(col, player);
             if (row == -1) {
                 puts("Invalid move (column full or out of range). Try again.");
                 continue;
             }
-            if (is_winning_move(row, col, player)) { print_board(); printf("Player %c WINS!\n", player); break; }
+            if (is_winning_move(row, col, player)) {
+                print_board();
+                printf("Player %c WINS!\n", player);
+                break;
+            }
         }
-        if (is_draw()) { print_board(); puts("DRAW!"); break; }
+        if (is_draw()) {
+            print_board();
+            puts("DRAW!");
+            break;
+        }
         player = (player == 'A') ? 'B' : 'A';
     }
     return 0;
